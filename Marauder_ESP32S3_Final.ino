@@ -192,7 +192,9 @@ class MarauderS3 {
 private:
     lv_disp_draw_buf_t draw_buf;
     bool stylesDone = false;
-    static lv_style_t s_screen, s_card, s_hero, s_title, s_value;
+    static lv_style_t s_screen, s_card, s_title, s_value, s_hero;
+    static lv_style_t s_btn, s_btn_primary, s_btn_danger, s_btn_success;
+    static lv_style_t s_badge, s_toggle, s_nav_btn;
     
     void initStyles();
     lv_obj_t* createCard(lv_obj_t* parent, lv_coord_t w, lv_coord_t h);
@@ -219,6 +221,7 @@ public:
     SemaphoreHandle_t gpsMutex = nullptr;
     SemaphoreHandle_t spiMutex = nullptr;
     SemaphoreHandle_t sdMutex = nullptr;
+    SemaphoreHandle_t hsCaptureMutex = nullptr;
     QueueHandle_t eventQueue = nullptr;
 
     // Core UI Objects
@@ -449,9 +452,9 @@ int wifiNetworksCount = 0;
 #define C_WARNING         0xD4A373
 #define C_SUCCESS         0x84A98C
 
-lv_style_t MarauderS3::s_screen, MarauderS3::s_card, MarauderS3::s_title, 
-           MarauderS3::s_value, MarauderS3::s_hero;
-static lv_style_t s_btn, s_btn_primary, s_btn_danger, s_btn_success, s_badge, s_toggle, s_nav_btn;
+lv_style_t MarauderS3::s_screen, MarauderS3::s_card, MarauderS3::s_title, MarauderS3::s_value, MarauderS3::s_hero;
+lv_style_t MarauderS3::s_btn, MarauderS3::s_btn_primary, MarauderS3::s_btn_danger, MarauderS3::s_btn_success;
+lv_style_t MarauderS3::s_badge, MarauderS3::s_toggle, MarauderS3::s_nav_btn;
 
 void MarauderS3::initStyles() {
     if (stylesDone) return;
@@ -468,6 +471,7 @@ void MarauderS3::initStyles() {
     lv_style_init(&s_badge);
     lv_style_init(&s_toggle);
     lv_style_init(&s_nav_btn);
+    applyTheme();
 }
 
 void applyTheme() {
@@ -490,41 +494,41 @@ void applyTheme() {
     lv_style_set_shadow_width(&MarauderS3::s_card, 0);
 
     // Botones
-    lv_style_set_radius(&s_btn, 7);
-    lv_style_set_pad_all(&s_btn, 4);
-    lv_style_set_text_font(&s_btn, &lv_font_montserrat_10);
+    lv_style_set_radius(&MarauderS3::s_btn, 7);
+    lv_style_set_pad_all(&MarauderS3::s_btn, 4);
+    lv_style_set_text_font(&MarauderS3::s_btn, &lv_font_montserrat_10);
     
     // Botón Primario (Earthy Accent)
-    lv_style_set_bg_color(&s_btn_primary, lv_color_hex(C_ACCENT));
-    lv_style_set_text_color(&s_btn_primary, lv_color_hex(0xFFFFFF));
+    lv_style_set_bg_color(&MarauderS3::s_btn_primary, lv_color_hex(C_ACCENT));
+    lv_style_set_text_color(&MarauderS3::s_btn_primary, lv_color_hex(0xFFFFFF));
     
     // Botón Peligro
-    lv_style_set_bg_color(&s_btn_danger, lv_color_hex(C_DANGER));
-    lv_style_set_bg_opa(&s_btn_danger, LV_OPA_20);
-    lv_style_set_text_color(&s_btn_danger, lv_color_hex(C_DANGER));
-    lv_style_set_border_width(&s_btn_danger, 1);
-    lv_style_set_border_color(&s_btn_danger, lv_color_hex(C_DANGER));
+    lv_style_set_bg_color(&MarauderS3::s_btn_danger, lv_color_hex(C_DANGER));
+    lv_style_set_bg_opa(&MarauderS3::s_btn_danger, LV_OPA_20);
+    lv_style_set_text_color(&MarauderS3::s_btn_danger, lv_color_hex(C_DANGER));
+    lv_style_set_border_width(&MarauderS3::s_btn_danger, 1);
+    lv_style_set_border_color(&MarauderS3::s_btn_danger, lv_color_hex(C_DANGER));
 
     // Botón Éxito
-    lv_style_set_bg_color(&s_btn_success, lv_color_hex(C_SUCCESS));
-    lv_style_set_bg_opa(&s_btn_success, LV_OPA_10);
-    lv_style_set_text_color(&s_btn_success, lv_color_hex(C_SUCCESS));
+    lv_style_set_bg_color(&MarauderS3::s_btn_success, lv_color_hex(C_SUCCESS));
+    lv_style_set_bg_opa(&MarauderS3::s_btn_success, LV_OPA_10);
+    lv_style_set_text_color(&MarauderS3::s_btn_success, lv_color_hex(C_SUCCESS));
 
     // Badge
-    lv_style_set_radius(&s_badge, 12);
-    lv_style_set_bg_color(&s_badge, lv_color_hex(C_ACCENT));
-    lv_style_set_bg_opa(&s_badge, LV_OPA_10);
-    lv_style_set_text_color(&s_badge, lv_color_hex(C_ACCENT));
-    lv_style_set_text_font(&s_badge, &lv_font_montserrat_10);
-    lv_style_set_pad_hor(&s_badge, 6);
-    lv_style_set_pad_ver(&s_badge, 2);
+    lv_style_set_radius(&MarauderS3::s_badge, 12);
+    lv_style_set_bg_color(&MarauderS3::s_badge, lv_color_hex(C_ACCENT));
+    lv_style_set_bg_opa(&MarauderS3::s_badge, LV_OPA_10);
+    lv_style_set_text_color(&MarauderS3::s_badge, lv_color_hex(C_ACCENT));
+    lv_style_set_text_font(&MarauderS3::s_badge, &lv_font_montserrat_10);
+    lv_style_set_pad_hor(&MarauderS3::s_badge, 6);
+    lv_style_set_pad_ver(&MarauderS3::s_badge, 2);
 
     // Nav
-    lv_style_set_bg_opa(&s_nav_btn, 0);
-    lv_style_set_text_color(&s_nav_btn, lv_color_hex(is_light_theme ? C_TEXT2_LIGHT : C_TEXT2_DARK));
-    lv_style_set_text_font(&s_nav_btn, &lv_font_montserrat_10);
+    lv_style_set_bg_opa(&MarauderS3::s_nav_btn, 0);
+    lv_style_set_text_color(&MarauderS3::s_nav_btn, lv_color_hex(is_light_theme ? C_TEXT2_LIGHT : C_TEXT2_DARK));
+    lv_style_set_text_font(&MarauderS3::s_nav_btn, &lv_font_montserrat_10);
 
-    lv_obj_report_style_change(NULL);
+    lv_obj_invalidate(lv_scr_act()); // Invalidate actual screen (LVGL 8.3 compatible)
 }
 
 lv_obj_t* MarauderS3::createCard(lv_obj_t* parent, lv_coord_t w, lv_coord_t h) {
@@ -1162,14 +1166,15 @@ void MarauderS3::buildBottomNav() {
         lv_obj_set_style_text_font(lbl, &lv_font_montserrat_10, LV_PART_MAIN);
         lv_obj_align(lbl, LV_ALIGN_BOTTOM_MID, 0, 2);
 
-        struct NavData { MarauderS3* m; int idx; };
-        NavData* nd = new NavData{this, i};
-
         lv_obj_add_event_cb(btn, [](lv_event_t* e) {
-            NavData* d = (NavData*)lv_event_get_user_data(e);
-            lv_obj_scroll_to_y(d->m->pages_container, d->idx * 176, LV_ANIM_ON); // Aproximado
-            // O mejor usar páginas separadas y ocultar/mostrar
-        }, LV_EVENT_CLICKED, nd);
+            MarauderS3* m = (MarauderS3*)lv_event_get_user_data(e);
+            lv_obj_t* btn_obj = lv_event_get_target(e);
+            int idx = (int)(intptr_t)lv_obj_get_user_data(btn_obj);
+            if (m && m->pages_container) {
+                lv_obj_scroll_to_y(m->pages_container, idx * 176, LV_ANIM_ON);
+            }
+        }, LV_EVENT_CLICKED, this);
+        lv_obj_set_user_data(btn, (void*)(intptr_t)i);
     }
 }
 
@@ -1347,6 +1352,7 @@ void MarauderS3::begin() {
     gpsMutex = xSemaphoreCreateMutex();
     spiMutex = xSemaphoreCreateMutex();
     sdMutex = xSemaphoreCreateMutex();
+    hsCaptureMutex = xSemaphoreCreateMutex();
     eventQueue = xQueueCreate(30, sizeof(AppEvent));
 }
 
@@ -1399,68 +1405,64 @@ bool MarauderS3::initSDCard() {
 // ─── CAPTURA DE HANDSHAKES WIFI ───
 void MarauderS3::captureWiFiHandshake() {
     WiFi.mode(WIFI_MODE_AP);
+    
+    // Mutex ya inicializado en begin()
     esp_wifi_set_promiscuous(true);
     
     esp_wifi_set_promiscuous_rx_cb([](void *buf, wifi_promiscuous_pkt_type_t type) {
         wifi_promiscuous_pkt_t *pkt = (wifi_promiscuous_pkt_t *)buf;
         wifi_pkt_rx_ctrl_t *ctrl = &pkt->rx_ctrl;
         uint8_t *frame = pkt->payload;
-        uint8_t frame_type = frame[0] & 0xFC;
         
-        if (pkt->payload[12] == 0x88 && pkt->payload[13] == 0x8E) {
-            WiFiHandshake hs;
-            memcpy(hs.bssid, &frame[10], 6);
-            memcpy(hs.station, &frame[4], 6);
-            hs.timestamp = millis();
-            hs.rssi = ctrl->rssi;
+        // Verificar tipo de frame ANTES de cualquier acceso compartido
+        if (pkt->payload[12] != 0x88 || pkt->payload[13] != 0x8E) return;
+        
+        WiFiHandshake hs = {};
+        memcpy(hs.bssid, &frame[10], 6);
+        memcpy(hs.station, &frame[4], 6);
+        hs.timestamp = millis();
+        hs.rssi = ctrl->rssi;
+        
+        uint8_t eapol_type = frame[15];
+        if (eapol_type == 0x01) hs.frame_type = 1;
+        else if (eapol_type == 0x02) hs.frame_type = 2;
+        else if (eapol_type == 0x03) hs.frame_type = 3;
+        else if (eapol_type == 0x04) hs.frame_type = 4;
+        
+        hs.data_len = pkt->rx_ctrl.sig_len;
+        if (hs.data_len > 256) hs.data_len = 256;
+        memcpy(hs.data, frame, hs.data_len);
+        
+        // 🔒 PROTECCIÓN CON MUTEX
+        if (marauder.hsCaptureMutex && xSemaphoreTake(marauder.hsCaptureMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
             
-            uint8_t eapol_type = frame[15];
-            if (eapol_type == 0x01) hs.frame_type = 1;
-            else if (eapol_type == 0x02) hs.frame_type = 2;
-            else if (eapol_type == 0x03) hs.frame_type = 3;
-            else if (eapol_type == 0x04) hs.frame_type = 4;
-            
-            hs.data_len = pkt->rx_ctrl.sig_len;
-            if (hs.data_len > 256) hs.data_len = 256;
-            memcpy(hs.data, frame, hs.data_len);
-            
-            if (marauder.gpsFixed && xSemaphoreTake(marauder.gpsMutex, pdMS_TO_TICKS(10))) {
-                hs.gps_lat = marauder.gpsData.lat;
-                hs.gps_lng = marauder.gpsData.lng;
+            // Copiar GPS datos con su propio mutex
+            if (marauder.gpsMutex && xSemaphoreTake(marauder.gpsMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+                if (marauder.gpsFixed) {
+                    hs.gps_lat = marauder.gpsData.lat;
+                    hs.gps_lng = marauder.gpsData.lng;
+                }
                 xSemaphoreGive(marauder.gpsMutex);
             }
             
-            if (marauder.capturedHandshakes.size() > 100) {
+            // Controlar tamaño del buffer circular
+            if (marauder.capturedHandshakes.size() >= 100) {
                 marauder.capturedHandshakes.erase(marauder.capturedHandshakes.begin());
             }
+            
             marauder.capturedHandshakes.push_back(hs);
             marauder.handshakeCount++;
+            
+            xSemaphoreGive(marauder.hsCaptureMutex);
+            
+            // Guardar a SD FUERA del mutex (operación lenta)
             marauder.saveHandshakeToSD(hs);
             
+            // Enviar evento
             AppEvent evt{EVT_STATUS, marauder.handshakeCount, ""};
-            snprintf(evt.msg, sizeof(evt.msg), "Handshake #%d capturado!", marauder.handshakeCount);
-            xQueueSend(marauder.eventQueue, &evt, 0);
-        }
-        
-        if (frame_type == 0x00 && frame[0] == 0x00) {
-            for (int i = 36; i < pkt->rx_ctrl.sig_len - 16; i++) {
-                if (frame[i] == 0xDD && frame[i+2] == 0x00 && frame[i+3] == 0x0F && 
-                    frame[i+4] == 0xAC && frame[i+5] == 0x04) {
-                    WiFiHandshake pmkid;
-                    memcpy(pmkid.bssid, &frame[10], 6);
-                    pmkid.frame_type = 0;
-                    pmkid.timestamp = millis();
-                    pmkid.rssi = ctrl->rssi;
-                    pmkid.data_len = 22;
-                    memcpy(pmkid.data, &frame[i], 22);
-                    
-                    if (marauder.capturedHandshakes.size() > 100) {
-                        marauder.capturedHandshakes.erase(marauder.capturedHandshakes.begin());
-                    }
-                    marauder.capturedHandshakes.push_back(pmkid);
-                    marauder.saveHandshakeToSD(pmkid);
-                    break;
-                }
+            snprintf(evt.msg, sizeof(evt.msg), "HS #%d capturado!", marauder.handshakeCount);
+            if (marauder.eventQueue) {
+                xQueueSend(marauder.eventQueue, &evt, pdMS_TO_TICKS(10));
             }
         }
     });
@@ -1552,72 +1554,67 @@ void MarauderS3::warDriveLog() {
 
 // ─── CC1101 433MHz ───
 void MarauderS3::initCC1101() {
-    if (xSemaphoreTake(spiMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
-        pinMode(CC1101_CS, OUTPUT);
-        digitalWrite(CC1101_CS, HIGH);
-        
-        uint8_t cc1101_config[] = {
-            0x04, 0x2E, 0x2E, 0x07, 0xD3, 0x91, 0xFF, 0x04, 0x32, 0x00, 0x00, 0x06, 0x00, 0x10, 0xA7, 0x62,
-            0xF8, 0x83, 0x13, 0x22, 0xF8, 0x47, 0xB6, 0x0C, 0x18, 0x1E, 0x1C, 0xC7, 0x00, 0xB2, 0xEA, 0x0A,
-            0x00, 0x11, 0x16, 0x6C, 0x03, 0x40, 0x0D, 0x59, 0x7F, 0x88, 0x31, 0x0B, 0x88, 0x31, 0x09
-        };
-        
-        SPI.beginTransaction(SPISettings(6000000, MSBFIRST, SPI_MODE0));
+    if (xSemaphoreTake(spiMutex, pdMS_TO_TICKS(500)) != pdTRUE) {
+        Serial.println("[CC1101] ❌ SPI bus ocupado - init fallido");
+        cc1101Ready = false;
+        return;
+    }
+    
+    pinMode(CC1101_CS, OUTPUT);
+    digitalWrite(CC1101_CS, HIGH);
+    delayMicroseconds(20);
+    
+    uint8_t cc1101_config[] = {
+        0x04, 0x2E, 0x2E, 0x07, 0xD3, 0x91, 0xFF, 0x04, 0x32, 0x00, 0x00, 0x06, 0x00, 0x10, 0xA7, 0x62,
+        0xF8, 0x83, 0x13, 0x22, 0xF8, 0x47, 0xB6, 0x0C, 0x18, 0x1E, 0x1C, 0xC7, 0x00, 0xB2, 0xEA, 0x0A,
+        0x00, 0x11, 0x16, 0x6C, 0x03, 0x40, 0x0D, 0x59, 0x7F, 0x88, 0x31, 0x0B, 0x88, 0x31, 0x09
+    };
+    
+    SPI.beginTransaction(SPISettings(6000000, MSBFIRST, SPI_MODE0));
+    digitalWrite(CC1101_CS, LOW);
+    delayMicroseconds(10);
+    SPI.transfer(0x30); // SRES
+    delay(10);
+    digitalWrite(CC1101_CS, HIGH);
+    delayMicroseconds(10);
+    
+    for (size_t i = 0; i < sizeof(cc1101_config); i++) {
         digitalWrite(CC1101_CS, LOW);
         delayMicroseconds(10);
-        SPI.transfer(0x30);
-        delay(10);
+        SPI.transfer(0x00 | (i & 0x3F));
+        SPI.transfer(cc1101_config[i]);
         digitalWrite(CC1101_CS, HIGH);
         delayMicroseconds(10);
-        
-        for (int i = 0; i < sizeof(cc1101_config); i++) {
-            digitalWrite(CC1101_CS, LOW);
-            delayMicroseconds(10);
-            SPI.transfer(0x00 | (i & 0x3F));
-            SPI.transfer(cc1101_config[i]);
-            digitalWrite(CC1101_CS, HIGH);
-            delayMicroseconds(10);
-        }
-        SPI.endTransaction();
-        
-        cc1101Ready = true;
-        Serial.println("[CC1101] ✅ Inicializado en 433.92 MHz");
-        xSemaphoreGive(spiMutex);
     }
+    SPI.endTransaction();
+    
+    cc1101Ready = true;
+    Serial.println("[CC1101] ✅ Inicializado @ 433.92 MHz");
+    xSemaphoreGive(spiMutex);
 }
 
 void MarauderS3::scan433MHz() {
     if (!cc1101Ready) return;
-    if (xSemaphoreTake(spiMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
-        SPI.beginTransaction(SPISettings(6000000, MSBFIRST, SPI_MODE0));
-        digitalWrite(CC1101_CS, LOW);
-        SPI.transfer(0x34);
-        digitalWrite(CC1101_CS, HIGH);
-        SPI.endTransaction();
-        
-        delay(50);
-        SPI.beginTransaction(SPISettings(6000000, MSBFIRST, SPI_MODE0));
-        digitalWrite(CC1101_CS, LOW);
-        SPI.transfer(0x34 | 0x80);
-        int rssi = SPI.transfer(0x00);
-        digitalWrite(CC1101_CS, HIGH);
-        SPI.endTransaction();
-        
-        int rssi_dbm = ((rssi >= 128) ? (rssi - 256) / 2 : rssi / 2) - 74;
-        if (rssi_dbm > -90) {
-            SPI.beginTransaction(SPISettings(6000000, MSBFIRST, SPI_MODE0));
-            digitalWrite(CC1101_CS, LOW);
-            uint8_t rxfifo = SPI.transfer(0x3B | 0x80);
-            uint8_t bytes_avail = SPI.transfer(0x00);
-            digitalWrite(CC1101_CS, HIGH);
-            SPI.endTransaction();
-            
-            if (bytes_avail > 0) {
-                captureSubGHzSignal();
-            }
-        }
-        xSemaphoreGive(spiMutex);
+    if (xSemaphoreTake(spiMutex, pdMS_TO_TICKS(200)) != pdTRUE) return;
+    
+    SPI.beginTransaction(SPISettings(6000000, MSBFIRST, SPI_MODE0));
+    digitalWrite(CC1101_CS, LOW);
+    SPI.transfer(0x34); // RX strobe
+    digitalWrite(CC1101_CS, HIGH);
+    delayMicroseconds(50);
+    
+    digitalWrite(CC1101_CS, LOW);
+    SPI.transfer(0x34 | 0x80); // Read RSSI
+    int rssi = SPI.transfer(0x00);
+    digitalWrite(CC1101_CS, HIGH);
+    SPI.endTransaction();
+    
+    int rssi_dbm = ((rssi >= 128) ? (rssi - 256) / 2 : rssi / 2) - 74;
+    
+    if (rssi_dbm > -90) {
+        captureSubGHzSignal();
     }
+    xSemaphoreGive(spiMutex);
 }
 
 void MarauderS3::captureSubGHzSignal() {
@@ -2716,7 +2713,7 @@ void hardwareTask(void* arg) {
         // ── GPS ──
         while (marauder.gpsSerial.available()) {
             if (marauder.gps.encode(marauder.gpsSerial.read())) {
-                if (xSemaphoreTake(marauder.gpsMutex, pdMS_TO_TICKS(25)) == pdTRUE) {
+                if (marauder.gpsMutex && xSemaphoreTake(marauder.gpsMutex, pdMS_TO_TICKS(25)) == pdTRUE) {
                     marauder.gpsData.valid = marauder.gps.location.isValid();
                     if (marauder.gpsData.valid) {
                         marauder.gpsData.lat = marauder.gps.location.lat();
@@ -2727,30 +2724,48 @@ void hardwareTask(void* arg) {
                             marauder.gpsData.heading = marauder.gps.course.deg();
                         }
                         marauder.gpsFixed = true;
+                    } else {
+                        marauder.gpsFixed = false;
                     }
                     marauder.gpsData.sats = marauder.gps.satellites.value();
                     xSemaphoreGive(marauder.gpsMutex);
 
                     AppEvent evt{EVT_GPS, 0, ""};
-                    xQueueSend(marauder.eventQueue, &evt, 0);
+                    if (marauder.eventQueue) {
+                        xQueueSend(marauder.eventQueue, &evt, 0);
+                    }
                 }
             }
         }
 
         // ── BATERÍA ──
         if (millis() - lastBat > 2000) {
-            int raw = analogRead(BAT_ADC_PIN);
-            marauder.batVoltage = (raw / 4095.0f) * 3.3f * BAT_DIVIDER_RATIO;
+            // Lectura ADC con promedio
+            int raw = 0;
+            for (int i = 0; i < 4; i++) {
+                raw += analogRead(BAT_ADC_PIN);
+            }
+            raw /= 4;
+            
+            // Fórmula correcta para LiPo 1S con divisor 2.0
+            float voltage_raw = (raw / 4095.0f) * 3.3f;
+            marauder.batVoltage = voltage_raw * BAT_DIVIDER_RATIO;
+            
+            // Rango LiPo 1S: 3.2V = 0% | 4.2V = 100%
+            float v_min = 3.2f;
+            float v_max = 4.2f;
             marauder.batPercent = constrain(
-                (int)((marauder.batVoltage - 3.2f) * 100), 0, 100
+                (int)(((marauder.batVoltage - v_min) / (v_max - v_min)) * 100), 0, 100
             );
 
             AppEvent evt{EVT_BAT, marauder.batPercent, ""};
-            xQueueSend(marauder.eventQueue, &evt, 0);
+            if (marauder.eventQueue) {
+                xQueueSend(marauder.eventQueue, &evt, 0);
+            }
             lastBat = millis();
         }
 
-        // WiFi SCAN + HANDSHAKE capture
+        // WiFi SCAN
         if (millis() - lastWiFiScan > 5000) {
             WiFi.mode(WIFI_STA);
             WiFi.disconnect();
@@ -2759,7 +2774,7 @@ void hardwareTask(void* arg) {
             if (n > 0) {
                 for (int i = 0; i < n && i < 20; i++) {
                     if (marauder.gpsFixed && marauder.sdCardMounted) {
-                        if (xSemaphoreTake(marauder.spiMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+                        if (marauder.spiMutex && xSemaphoreTake(marauder.spiMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
                             if (marauder.warDriveFile) {
                                 marauder.warDriveFile.printf("%lu,%.6f,%.6f,%s,%s,%d,%d,%s\n",
                                     millis(), marauder.gpsData.lat, marauder.gpsData.lng,
@@ -2775,8 +2790,10 @@ void hardwareTask(void* arg) {
                 }
                 
                 AppEvent evt{EVT_WIFI, n, ""};
-                snprintf(evt.msg, sizeof(evt.msg), "WiFi: %d redes | HC: %d", n, marauder.handshakeCount);
-                xQueueSend(marauder.eventQueue, &evt, 0);
+                snprintf(evt.msg, sizeof(evt.msg), "WiFi: %d | HC: %d", n, marauder.handshakeCount);
+                if (marauder.eventQueue) {
+                    xQueueSend(marauder.eventQueue, &evt, 0);
+                }
             }
             WiFi.scanDelete();
             lastWiFiScan = millis();
@@ -2784,11 +2801,13 @@ void hardwareTask(void* arg) {
 
         // CC1101 Scan
         if (millis() - lastCC1101Scan > 3000) {
-            marauder.scan433MHz();
+            if (marauder.cc1101Ready) {
+                marauder.scan433MHz();
+            }
             lastCC1101Scan = millis();
         }
 
-        vTaskDelay(pdMS_TO_TICKS(90));
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
 }
 
@@ -2845,18 +2864,29 @@ void setup() {
     // ── INICIAR LVGL ──
     lv_init();
 
-    // Buffer PSRAM
-    marauder.buf1 = (lv_color_t*)heap_caps_malloc(SCR_W * 40 * sizeof(lv_color_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-    marauder.buf2 = (lv_color_t*)heap_caps_malloc(SCR_W * 40 * sizeof(lv_color_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    // ─── GESTIÓN DE MEMORIA PSRAM - MEJORADA ───
+    #define LVGL_BUF_SIZE (SCR_W * 40)
 
-    if (!marauder.buf1) {
-        Serial.println("[WARN] Sin PSRAM - usando SRAM");
-        marauder.buf1 = (lv_color_t*)malloc(SCR_W * 20 * sizeof(lv_color_t));
-        lv_disp_draw_buf_init(marauder.getDrawBuf(), marauder.buf1, nullptr, SCR_W * 20);
-    } else if (!marauder.buf2) {
-        lv_disp_draw_buf_init(marauder.getDrawBuf(), marauder.buf1, nullptr, SCR_W * 40);
+    marauder.buf1 = (lv_color_t*)heap_caps_malloc(LVGL_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
+    marauder.buf2 = (lv_color_t*)heap_caps_malloc(LVGL_BUF_SIZE * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
+
+    if (!marauder.buf1 || !marauder.buf2) {
+        Serial.println("[MEMORY] ⚠️ PSRAM agotado o no disponible, fallback a SRAM");
+        if (marauder.buf1) { heap_caps_free(marauder.buf1); marauder.buf1 = nullptr; }
+        if (marauder.buf2) { heap_caps_free(marauder.buf2); marauder.buf2 = nullptr; }
+        
+        uint32_t sram_size = SCR_W * 20;
+        marauder.buf1 = (lv_color_t*)malloc(sram_size * sizeof(lv_color_t));
+        marauder.buf2 = (lv_color_t*)malloc(sram_size * sizeof(lv_color_t));
+        
+        if (!marauder.buf1 || !marauder.buf2) {
+            Serial.println("[MEMORY] ❌ FALLO CRÍTICO: No hay memoria");
+            esp_restart();
+        }
+        lv_disp_draw_buf_init(marauder.getDrawBuf(), marauder.buf1, marauder.buf2, sram_size);
     } else {
-        lv_disp_draw_buf_init(marauder.getDrawBuf(), marauder.buf1, marauder.buf2, SCR_W * 40);
+        Serial.printf("[MEMORY] ✅ PSRAM OK: %d bytes\n", 2 * LVGL_BUF_SIZE * sizeof(lv_color_t));
+        lv_disp_draw_buf_init(marauder.getDrawBuf(), marauder.buf1, marauder.buf2, LVGL_BUF_SIZE);
     }
 
     static lv_disp_drv_t disp_drv;
