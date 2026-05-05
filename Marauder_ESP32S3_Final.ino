@@ -199,6 +199,10 @@ private:
     void initStyles();
     lv_obj_t* createCard(lv_obj_t* parent, lv_coord_t w, lv_coord_t h);
 
+    // Private IE builders
+    uint8_t* buildSSID_IE(const char* ssid, uint8_t* out_len);
+    uint8_t* buildRates_IE(const uint8_t* rates, uint8_t rate_count, uint8_t* out_len);
+
 public:
     lv_color_t *buf1 = nullptr, *buf2 = nullptr;
 
@@ -416,6 +420,17 @@ public:
     // UI
     void buildSpectrumUI();
 };
+
+// Destructor
+MarauderS3::~MarauderS3() {
+#ifdef HAS_SQLITE
+    if (db) sqlite3_close(db);
+#endif
+    if (server) { server->end(); delete server; }
+    if (dnsServer) delete dnsServer;
+    if (buf1) heap_caps_free(buf1);
+    if (buf2) heap_caps_free(buf2);
+}
 
 MarauderS3 marauder;
 
@@ -1417,7 +1432,7 @@ void MarauderS3::captureWiFiHandshake() {
         uint8_t *frame = pkt->payload;
         
         // Verificar tipo de frame ANTES de cualquier acceso compartido
-        if (pkt->rx_ctrl.sig_len < 14) return;
+        if (pkt->rx_ctrl.sig_len < 16) return;
         if (pkt->payload[12] != 0x88 || pkt->payload[13] != 0x8E) return;
         
         WiFiHandshake hs = {};
@@ -1456,16 +1471,18 @@ void MarauderS3::captureWiFiHandshake() {
             marauder.capturedHandshakes.push_back(hs);
             marauder.handshakeCount++;
             
-            // Guardar a SD DENTRO del mutex para evitar race
-            marauder.saveHandshakeToSD(hs);
-            
             xSemaphoreGive(marauder.hsCaptureMutex);
+            
+            // Guardar a SD FUERA del mutex para evitar deadlock
+            marauder.saveHandshakeToSD(hs);
             
             // Enviar evento
             AppEvent evt{EVT_STATUS, marauder.handshakeCount, ""};
             snprintf(evt.msg, sizeof(evt.msg), "HS #%d capturado!", marauder.handshakeCount);
             if (marauder.eventQueue) {
-                xQueueSend(marauder.eventQueue, &evt, pdMS_TO_TICKS(50));
+                BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+                xQueueSendFromISR(marauder.eventQueue, &evt, &xHigherPriorityTaskWoken);
+                if (xHigherPriorityTaskWoken) portYIELD_FROM_ISR();
             }
         }
     });
@@ -1482,7 +1499,7 @@ void MarauderS3::captureWiFiHandshake() {
 
 void MarauderS3::saveHandshakeToSD(WiFiHandshake& handshake) {
     if (!sdCardMounted) return;
-    if (xSemaphoreTake(spiMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+    if (xSemaphoreTake(spiMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
         exportToPCAP(handshake);
         logJSON(handshake);
         if (gpsFixed) { warDriveLog(); }
@@ -1787,7 +1804,7 @@ uint8_t* MarauderS3::build80211ManagementFrame(const TestFrameConfig& cfg, uint1
     return frame;
 }
 
-uint8_t* buildSSID_IE(const char* ssid, uint8_t* out_len) {
+uint8_t* MarauderS3::buildSSID_IE(const char* ssid, uint8_t* out_len) {
     uint8_t ssid_len = strlen(ssid);
     uint8_t* ie = (uint8_t*)malloc(2 + ssid_len);
     ie[0] = 0x00;
@@ -1797,7 +1814,7 @@ uint8_t* buildSSID_IE(const char* ssid, uint8_t* out_len) {
     return ie;
 }
 
-uint8_t* buildRates_IE(const uint8_t* rates, uint8_t rate_count, uint8_t* out_len) {
+uint8_t* MarauderS3::buildRates_IE(const uint8_t* rates, uint8_t rate_count, uint8_t* out_len) {
     *out_len = 2 + rate_count;
     uint8_t* ie = (uint8_t*)malloc(*out_len);
     ie[0] = 0x01;
@@ -1918,7 +1935,7 @@ void MarauderS3::startTrafficGeneration(const TrafficGenConfig& cfg) {
     
     Serial.printf("[TrafficGen] ✅ Test completado: %lu frames transmitidos\n", frame_count);
     
-    if (sdCardMounted && xSemaphoreTake(spiMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+    if (sdCardMounted && xSemaphoreTake(spiMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
         saveTrafficTestResults(cfg, frame_count, millis() - start_time);
         xSemaphoreGive(spiMutex);
     }
@@ -2040,6 +2057,7 @@ static void MarauderS3::eapolCaptureCallback(void* buf, wifi_promiscuous_pkt_typ
     wifi_promiscuous_pkt_t* pkt = (wifi_promiscuous_pkt_t*)buf;
     uint8_t* frame = pkt->payload;
     
+    if (pkt->rx_ctrl.sig_len < 21) return;
     if (pkt->payload[12] != 0x88 || pkt->payload[13] != 0x8E) return;
     uint8_t eapol_type = frame[15];
     if (eapol_type != 0x03) return;
@@ -2279,7 +2297,7 @@ uint64_t MarauderS3::getNRF24RXAddress() {
         SPI.endTransaction();
         xSemaphoreGive(spiMutex);
     }
-    return addr == 0 ? 0xAABBCCDDEELL : addr; // dummy if 0
+    return addr == 0 ? 0xAABBCCDDEEULL : addr; // dummy if 0
 }
 
 uint8_t MarauderS3::getNRF24DataRate() {
